@@ -30,4 +30,19 @@ The entire project is a single self-contained file: `tictactoe.html`. It has thr
 
 - Remote: `https://github.com/kavitaaddagalla-ai/tic-tac-toe`
 - Branch: `master`
-- Commit with descriptive messages (`feat:`, `fix:`, `chore:`) and push to save a revertible snapshot.
+
+**After every meaningful change, commit and push immediately.** This ensures no work is ever lost and every state is revertible.
+
+```bash
+git add <file>
+git commit -m "feat|fix|chore|docs: short description of what changed and why"
+git push
+```
+
+Commit conventions:
+- `feat:` — new feature or visible behavior change
+- `fix:` — bug fix
+- `chore:` — tooling, config, or non-functional change
+- `docs:` — documentation only
+
+Never batch unrelated changes into one commit. Each commit should represent one coherent unit of work so individual changes can be reverted cleanly.
