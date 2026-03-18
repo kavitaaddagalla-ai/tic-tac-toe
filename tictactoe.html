@@ -116,12 +116,12 @@
   <h1>Tic Tac Toe</h1>
 
   <div id="scores">
-    <div class="score-box x-score">X <span id="scoreX">0</span></div>
+    <div class="score-box x-score">You (X) <span id="scoreX">0</span></div>
     <div class="score-box draw-score">Draw <span id="scoreDraw">0</span></div>
-    <div class="score-box o-score">O <span id="scoreO">0</span></div>
+    <div class="score-box o-score">CPU (O) <span id="scoreO">0</span></div>
   </div>
 
-  <div id="status">X's turn</div>
+  <div id="status">Your turn (X)</div>
 
   <div id="board">
     <div class="cell" data-i="0"></div>
@@ -150,27 +150,92 @@
       [0,4,8],[2,4,6]
     ];
 
-    let board, current, over, scores = {X:0, O:0, Draw:0};
+    let board, over, scores = {X:0, O:0, Draw:0};
 
     function init() {
       board = Array(9).fill('');
-      current = 'X';
       over = false;
       cells.forEach(c => {
         c.textContent = '';
         c.className = 'cell';
       });
-      status.textContent = "X's turn";
+      status.textContent = "Your turn (X)";
     }
 
-    function checkWinner() {
-      for (const [a,b,c] of wins) {
-        if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-          return { winner: board[a], line: [a,b,c] };
+    function checkWinner(b) {
+      for (const [a,bc,c] of wins) {
+        if (b[a] && b[a] === b[bc] && b[a] === b[c]) {
+          return { winner: b[a], line: [a,bc,c] };
         }
       }
-      if (board.every(v => v)) return { winner: 'Draw' };
+      if (b.every(v => v)) return { winner: 'Draw' };
       return null;
+    }
+
+    // Minimax: returns score from CPU (O) perspective
+    function minimax(b, isMaximizing) {
+      const result = checkWinner(b);
+      if (result) {
+        if (result.winner === 'O') return 10;
+        if (result.winner === 'X') return -10;
+        return 0;
+      }
+      if (isMaximizing) {
+        let best = -Infinity;
+        for (let i = 0; i < 9; i++) {
+          if (!b[i]) {
+            b[i] = 'O';
+            best = Math.max(best, minimax(b, false));
+            b[i] = '';
+          }
+        }
+        return best;
+      } else {
+        let best = Infinity;
+        for (let i = 0; i < 9; i++) {
+          if (!b[i]) {
+            b[i] = 'X';
+            best = Math.min(best, minimax(b, true));
+            b[i] = '';
+          }
+        }
+        return best;
+      }
+    }
+
+    function cpuMove() {
+      let bestScore = -Infinity, bestIdx = -1;
+      for (let i = 0; i < 9; i++) {
+        if (!board[i]) {
+          board[i] = 'O';
+          const score = minimax(board, false);
+          board[i] = '';
+          if (score > bestScore) { bestScore = score; bestIdx = i; }
+        }
+      }
+      return bestIdx;
+    }
+
+    function applyMove(i, player) {
+      board[i] = player;
+      cells[i].textContent = player;
+      cells[i].classList.add(player.toLowerCase(), 'taken');
+    }
+
+    function handleResult(result) {
+      over = true;
+      if (result.winner === 'Draw') {
+        status.textContent = "It's a draw!";
+        scores.Draw++;
+        scoreDraw.textContent = scores.Draw;
+      } else {
+        const label = result.winner === 'X' ? 'You win!' : 'CPU wins!';
+        status.textContent = label;
+        result.line.forEach(idx => cells[idx].classList.add('win'));
+        scores[result.winner]++;
+        scoreX.textContent = scores.X;
+        scoreO.textContent = scores.O;
+      }
     }
 
     cells.forEach(cell => {
@@ -178,28 +243,21 @@
         const i = +cell.dataset.i;
         if (over || board[i]) return;
 
-        board[i] = current;
-        cell.textContent = current;
-        cell.classList.add(current.toLowerCase(), 'taken');
+        // Human plays X
+        applyMove(i, 'X');
+        const result = checkWinner(board);
+        if (result) { handleResult(result); return; }
 
-        const result = checkWinner();
-        if (result) {
-          over = true;
-          if (result.winner === 'Draw') {
-            status.textContent = "It's a draw!";
-            scores.Draw++;
-            scoreDraw.textContent = scores.Draw;
-          } else {
-            status.textContent = `${result.winner} wins!`;
-            result.line.forEach(idx => cells[idx].classList.add('win'));
-            scores[result.winner]++;
-            scoreX.textContent = scores.X;
-            scoreO.textContent = scores.O;
-          }
-        } else {
-          current = current === 'X' ? 'O' : 'X';
-          status.textContent = `${current}'s turn`;
-        }
+        status.textContent = "CPU is thinking…";
+
+        // Small delay so the UI updates before CPU move
+        setTimeout(() => {
+          const cpu = cpuMove();
+          applyMove(cpu, 'O');
+          const result2 = checkWinner(board);
+          if (result2) { handleResult(result2); return; }
+          status.textContent = "Your turn (X)";
+        }, 200);
       });
     });
 
